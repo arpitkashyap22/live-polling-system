@@ -28,29 +28,35 @@ const StudentPage: React.FC = () => {
   const { studentId, studentName } = useSelector((state: RootState) => state.user);
   const { isAnswerCorrect } = useSelector((state: RootState) => state.poll);
 
+  console.log('StudentPage render: currentPoll is', currentPoll ? 'active' : 'null');
+
   useEffect(() => {
+    // This useEffect is primarily for initial connection and logging initial state
+    console.log('StudentPage mounted. Initial poll state:', currentPoll);
+    console.log('Initial time remaining:', timeRemaining);
+
     if (socketService && studentId && studentName) {
-      console.log('Initializing student connection:', { studentId, studentName });
-      socketService.joinAsStudent(studentId, studentName);
+      console.log('Attempting to join as student:', { studentId, studentName });
+      // Only join if socket is not already connected as this student
+      if (!socketService.getSocket()?.connected || !socketService.getSocket()?.hasListeners('student:joined')) { // Added condition to prevent re-joining
+        socketService.joinAsStudent(studentId, studentName);
+      }
     }
-  }, [socketService, studentId, studentName]);
 
+    // Cleanup on unmount or when student data changes significantly
+    return () => {
+      // Only disconnect if studentId is not present (e.g., navigated away from student flow)
+      if (!sessionStorage.getItem('studentId')) {
+        socketService.disconnect();
+      }
+    };
+  }, [socketService, studentId, studentName]); // Dependencies only for initial connection
+
+  // Add a separate useEffect for logging poll and timer changes without re-joining
   useEffect(() => {
-    if (socketService) {
-      socketService.onPollError((error) => {
-        console.error('Poll error:', error);
-        // You might want to show this error to the user
-      });
-
-      socketService.onAnswerReceived((response) => {
-        if (response.success) {
-          console.log('Answer was received successfully');
-          // Store whether the answer was correct
-          dispatch(setAnswerCorrect(response.isCorrect));
-        }
-      });
-    }
-  }, [socketService, dispatch]);
+    console.log('Current poll state updated:', currentPoll);
+    console.log('Time remaining updated:', timeRemaining);
+  }, [currentPoll, timeRemaining]);
 
   const handleSubmitAnswer = (answer: string) => {
     if (!socketService) return;
@@ -88,16 +94,7 @@ const StudentPage: React.FC = () => {
             </Button>
           </div>
           
-          <div className="flex w-[134px] h-[31px] items-center justify-center gap-[7px] px-[9px] py-0 rounded-3xl [background:linear-gradient(90deg,rgba(117,101,217,1)_0%,rgba(77,10,205,1)_100%)] mb-4">
-            <img
-              className="relative w-[14.66px] h-[14.65px]"
-              alt="Vector"
-              src="/vector.svg"
-            />
-            <span className="[font-family:'Sora',Helvetica] font-semibold text-white text-sm">
-              Intervue Poll
-            </span>
-          </div>
+         
           <h1 className="[font-family:'Sora',Helvetica] text-2xl font-semibold text-gray-900">
             Welcome, {studentName}!
           </h1>
@@ -194,14 +191,24 @@ const StudentPage: React.FC = () => {
         {!currentPoll && (
           <Card>
             <CardContent className="text-center py-12">
-              <div className="text-gray-400 mb-4">
+              {/* <div className="text-gray-400 mb-4">
                 <Clock className="w-16 h-16 mx-auto" />
+              </div> */}
+              <div className="flex w-[134px] h-[31px] items-center justify-center gap-[7px] px-[9px] py-0 rounded-3xl [background:linear-gradient(90deg,rgba(117,101,217,1)_0%,rgba(77,10,205,1)_100%)] mx-auto mb-4">
+                <img
+                  className="relative w-[14.66px] h-[14.65px]"
+                  alt="Vector"
+                  src="/vector.svg"
+                />
+                <span className="[font-family:'Sora',Helvetica] font-semibold text-white text-sm">
+                  Intervue Poll
+                </span>
               </div>
-              <h3 className="[font-family:'Sora',Helvetica] text-xl font-semibold text-gray-900 mb-2">
-                No Active Poll
-              </h3>
-              <p className="[font-family:'Sora',Helvetica] text-gray-600">
-                Wait for your teacher to start a new poll
+              <div className="flex flex-col items-center gap-4 m-4 p-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-purple-200 border-t-purple-600"></div>
+              </div>
+              <p className="[font-family:'Sora',Helvetica] text-2xl font-semibold text-gray-900">
+                Wait for your teacher to ask questions
               </p>
             </CardContent>
           </Card>

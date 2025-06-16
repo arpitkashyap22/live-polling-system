@@ -157,20 +157,41 @@ export function initializeSocketHandlers(io) {
 
     // Teacher kicks a student
     socket.on('teacher:kick', ({ studentId }) => {
-      const student = students.get(studentId);
-      if (student) {
-        // Notify the student
-        io.to(student.socketId).emit('student:kicked');
+      console.log(`Teacher attempting to kick student with ID: ${studentId}`);
+      let kickedStudentSocketId = null;
+      let kickedStudentName = null;
+
+      // Find the student by their unique ID (UUID) in the students Map
+      for (const [sId, studentData] of students.entries()) {
+        if (studentData.id === studentId) {
+          kickedStudentSocketId = sId;
+          kickedStudentName = studentData.name;
+          break;
+        }
+      }
+
+      if (kickedStudentSocketId) {
+        // Notify the kicked student if they are still connected
+        io.to(kickedStudentSocketId).emit('student:kicked');
+        
         // Remove student from the list
-        students.delete(studentId);
+        students.delete(kickedStudentSocketId);
         // Remove their answer if they had submitted one
-        answers.delete(studentId);
-        // Notify teachers about the update
-        io.to('teachers').emit('poll:progress', {
-          answered: answers.size,
-          total: students.size
-        });
-        console.log(`Student ${student.name} was kicked by teacher`);
+        answers.delete(kickedStudentSocketId);
+        
+        console.log(`Student ${kickedStudentName} (ID: ${studentId}) was kicked by teacher`);
+
+        // Notify teachers about the updated student list
+        const studentList = Array.from(students.entries()).map(([id, student]) => ({ id, name: student.name }));
+        io.to('teachers').emit('student:list', studentList);
+
+        // Also send updated poll progress to teachers if a poll is active
+        if (currentPoll && currentPoll.status === 'active') {
+          const results = getPollResults();
+          io.to('teachers').emit('poll:results', results);
+        }
+      } else {
+        console.log(`Student with ID: ${studentId} not found or already disconnected.`);
       }
     });
 

@@ -36,7 +36,7 @@ interface Student {
 const TeacherPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentPoll, results } = useSelector((state: RootState) => state.poll);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(true);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [error, setError] = useState('');
@@ -44,6 +44,7 @@ const TeacherPage: React.FC = () => {
   const [currentPollState, setCurrentPoll] = useState<Poll | null>(null);
   const [pollResults, setPollResults] = useState<PollResults | null>(null);
   const [studentList, setStudentList] = useState<Student[]>([]);
+  const [showStudentListPopup, setShowStudentListPopup] = useState(false);
 
   useEffect(() => {
     console.log('Teacher page mounted, initializing connection...');
@@ -150,7 +151,7 @@ const TeacherPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-4 relative">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -176,10 +177,10 @@ const TeacherPage: React.FC = () => {
                 </span>
               </div>
               <h1 className="[font-family:'Sora',Helvetica] text-3xl font-semibold text-gray-900">
-                Teacher Dashboard
+                Let's get started!
               </h1>
               <p className="[font-family:'Sora',Helvetica] text-gray-600 mt-1">
-                Create and manage live polls for your students
+              you'll have the ability to create and manage polls, ask questions, and monitor your students' responses in real-time.
               </p>
             </div>
             {canCreateNewPoll && (
@@ -194,46 +195,8 @@ const TeacherPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Student List */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="[font-family:'Sora',Helvetica] flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Connected Students ({studentList.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {studentList.length > 0 ? (
-              <div className="space-y-2">
-                {studentList.map((student) => (
-                  <div
-                    key={student.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <span className="[font-family:'Sora',Helvetica] font-medium">
-                      {student.name}
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleKickStudent(student.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center [font-family:'Sora',Helvetica]">
-                No students connected yet
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Current Poll Status */}
-        {currentPoll && (
+        {currentPollState && (
           <Card className="mb-6">
             <CardHeader>
               <CardTitle className="[font-family:'Sora',Helvetica] flex items-center gap-2">
@@ -245,21 +208,21 @@ const TeacherPage: React.FC = () => {
               <div className="space-y-3">
                 <div>
                   <h3 className="[font-family:'Sora',Helvetica] font-semibold text-lg">
-                    {currentPoll.question}
+                    {currentPollState.question}
                   </h3>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    currentPoll.status === 'active' 
+                    currentPollState.status === 'active' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {currentPoll.status === 'active' ? 'Active' : 'Closed'}
+                    {currentPollState.status === 'active' ? 'Active' : 'Closed'}
                   </span>
-                  {results && (
+                  {pollResults && (
                     <span className="flex items-center gap-1">
                       <Users className="w-4 h-4" />
-                      {results.totalVotes}/{results.totalStudents} responses
+                      {pollResults.totalVotes}/{pollResults.totalStudents} responses
                     </span>
                   )}
                 </div>
@@ -340,7 +303,7 @@ const TeacherPage: React.FC = () => {
                 </div>
 
                 {error && (
-                  <p className="text-red-500 text-sm [font-family:'Sora',Helvetica]">{error}</p>
+                  <p className="text-red-500 text-sm [font-family:'Sora',Helvetica] text-center">{error}</p>
                 )}
 
                 <div className="flex gap-3">
@@ -348,7 +311,7 @@ const TeacherPage: React.FC = () => {
                     type="submit"
                     className="[background:linear-gradient(159deg,rgba(143,100,225,1)_0%,rgba(29,104,189,1)_100%)] [font-family:'Sora',Helvetica] font-semibold"
                   >
-                    Create Poll
+                    Ask Question
                   </Button>
                   <Button
                     type="button"
@@ -368,28 +331,72 @@ const TeacherPage: React.FC = () => {
         )}
 
         {/* Poll Results */}
-        {results && <PollResults results={results} isTeacher={true} />}
+        {pollResults && <PollResults results={pollResults} isTeacher={true} />}
 
-        {/* No Poll Message */}
-        {!currentPoll && !showCreateForm && (
-          <Card>
-            <CardContent className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <Users className="w-16 h-16 mx-auto" />
-              </div>
-              <h3 className="[font-family:'Sora',Helvetica] text-xl font-semibold text-gray-900 mb-2">
-                No Active Poll
-              </h3>
-              <p className="[font-family:'Sora',Helvetica] text-gray-600 mb-6">
-                Create a new poll to start engaging with your students
-              </p>
-              <Button
-                onClick={() => setShowCreateForm(true)}
-                className="[background:linear-gradient(159deg,rgba(143,100,225,1)_0%,rgba(29,104,189,1)_100%)] [font-family:'Sora',Helvetica] font-semibold"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Poll
-              </Button>
+       
+      </div>
+
+      {/* Floating Student List Button */}
+      <div className="fixed bottom-4 right-4">
+        <Button
+          className="rounded-full w-14 h-14 shadow-lg [background:linear-gradient(159deg,rgba(143,100,225,1)_0%,rgba(29,104,189,1)_100%)] flex items-center justify-center"
+          onClick={() => setShowStudentListPopup(!showStudentListPopup)}
+          aria-label="Toggle Student List"
+        >
+          <Users className="w-6 h-6 text-white" />
+          {studentList.length > 0 && (
+            <span className="absolute top-0 right-0 block h-4 w-4 rounded-full ring-2 ring-white bg-red-600 text-white text-xs flex items-center justify-center">
+              {studentList.length}
+            </span>
+          )}
+        </Button>
+
+        {/* Student List Pop-up */}
+        {showStudentListPopup && (
+          <Card className="absolute bottom-16 right-0 w-64 shadow-xl z-50">
+            <CardHeader className="pb-2">
+              <CardTitle className="[font-family:'Sora',Helvetica] flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Students ({studentList.length})
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowStudentListPopup(false)}
+                  className="p-1 h-auto"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="max-h-60 overflow-y-auto">
+              {studentList.length > 0 ? (
+                <div className="space-y-2">
+                  {studentList.map((student) => (
+                    <div
+                      key={student.id}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                    >
+                      <span className="[font-family:'Sora',Helvetica] font-medium text-sm">
+                        {student.name}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleKickStudent(student.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 p-1 h-auto"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-center text-sm [font-family:'Sora',Helvetica]">
+                  No students connected
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
