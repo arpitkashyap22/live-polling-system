@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "source": "./index.html",
+  "type": "module",
+  "name": "live-polling-system",
+  "description": "A live polling system with teacher and student personas",
+
+  "scripts": {
+    "dev-client": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "npm run client",
+    "client": "vite",
+    "server": "nodemon server/src/index.js",
+    "build": "vite build",
+    "start": "vite preview"
+  },
+  "dependencies": {
+    "clsx": "2.1.1",
+    "lucide-react": "^0.453.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-router-dom": "^6.8.1",
+    "tailwind-merge": "2.5.4",
+    "@radix-ui/react-slot": "^1.1.0",
+    "class-variance-authority": "^0.7.0",
+    "@reduxjs/toolkit": "^2.0.1",
+    "react-redux": "^9.0.4",
+    "socket.io-client": "^4.7.4",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "cors": "^2.8.5",
+    "uuid": "^9.0.1",
+    "concurrently": "^8.2.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "4.3.4",
+    "esbuild": "0.24.0",
+    "globals": "15.12.0",
+    "tailwindcss": "3.4.16",
+    "vite": "6.0.4",
+    "nodemon": "^3.0.2",
+    "@types/uuid": "^9.0.7"
+  },
+  "alias": {
+    "@/*": "./src/components/ui/$1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
