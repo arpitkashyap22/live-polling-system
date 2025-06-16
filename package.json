@@ -3,7 +3,7 @@
   "source": "./index.html",
   "type": "module",
   "name": "live-polling-system",
-  "description": "A live polling system with teacher and student personas",
+  "description": "A real-time live polling system with teacher and student personas",
 
   "scripts": {
     "dev-client": "concurrently \"npm run server\" \"npm run client\"",
