@@ -9,6 +9,7 @@ import { socketService } from './services/socket';
 import HomePage from './pages/HomePage';
 import StudentPage from './pages/StudentPage';
 import TeacherPage from './pages/TeacherPage';
+import KickedPage from './pages/KickedPage';
 
 // Components
 import { StudentNameForm } from './components/StudentNameForm';
@@ -24,25 +25,14 @@ function App() {
     
     if (savedStudentId && savedStudentName) {
       dispatch(setStudent({ id: savedStudentId, name: savedStudentName }));
-      // Connect to socket and join as student
-      socketService.connect();
-      socketService.joinAsStudent(savedStudentId, savedStudentName);
+      
+      // Connect only once and join
+      if (!socketService.getSocket()?.connected) {
+        socketService.connect();
+        socketService.joinAsStudent(savedStudentId, savedStudentName);
+      }
     }
   }, [dispatch]);
-
-  useEffect(() => {
-    // Connect to socket when role is set
-    if (role && !socketService) {
-      socketService.connect();
-    }
-
-    return () => {
-      // Cleanup on unmount
-      if (socketService) {
-        socketService.disconnect();
-      }
-    };
-  }, [role]);
 
   return (
     <Router>
@@ -77,6 +67,7 @@ function App() {
             )
           } 
         />
+        <Route path="/kicked" element={<KickedPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

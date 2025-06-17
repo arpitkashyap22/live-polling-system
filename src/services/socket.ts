@@ -14,7 +14,14 @@ export class SocketService {
 
   connect() {
     const SOCKET_URL = 'https://live-polling-system-tqff.onrender.com';
+    // const SOCKET_URL = 'http://localhost:3001';
     console.log('Connecting to socket server at:', SOCKET_URL);
+    
+    // FIX: Prevent multiple connections
+    if (this.socket && this.socket.connected) {
+      console.log('Socket already connected');
+      return this.socket;
+    }
     
     this.socket = io(SOCKET_URL, {
       transports: ['websocket', 'polling'],
@@ -25,16 +32,19 @@ export class SocketService {
 
     this.socket.on('connect', () => {
       console.log('Connected to server with socket ID:', this.socket?.id);
+      this.isConnectedState = true; // FIX: Update connection state
       store.dispatch(setConnected(true));
     });
 
     this.socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error.message);
+      this.isConnectedState = false; // FIX: Update connection state
       store.dispatch(setConnected(false));
     });
 
     this.socket.on('connect_timeout', () => {
       console.error('Socket connection timeout');
+      this.isConnectedState = false; // FIX: Update connection state
       store.dispatch(setConnected(false));
     });
 
@@ -44,6 +54,7 @@ export class SocketService {
 
     this.socket.on('reconnect', (attemptNumber) => {
       console.log('Reconnected after', attemptNumber, 'attempts');
+      this.isConnectedState = true; // FIX: Update connection state
       store.dispatch(setConnected(true));
     });
 
@@ -53,16 +64,20 @@ export class SocketService {
 
     this.socket.on('reconnect_failed', () => {
       console.error('Failed to reconnect after all attempts');
+      this.isConnectedState = false; // FIX: Update connection state
     });
 
     this.socket.on('disconnect', (reason) => {
       console.log('Disconnected from server:', reason);
+      this.isConnectedState = false; // FIX: Update connection state
       store.dispatch(setConnected(false));
     });
 
     this.socket.on('poll:new', (poll) => {
       console.log('New poll received:', poll);
       store.dispatch(setPoll(poll));
+      // FIX: Reset answer status for new poll
+      store.dispatch(setHasAnswered(false));
       this.startTimer(poll.timeLimit);
     });
 
@@ -71,12 +86,16 @@ export class SocketService {
         console.log('Current poll:', poll);
         store.dispatch(setPoll(poll));
         
-        // Calculate remaining time
-        const elapsed = Date.now() - new Date(poll.createdAt).getTime();
-        const remaining = Math.max(0, (poll.timeLimit - elapsed) / 1000);
+        // FIX: Better time calculation
+        const elapsed = (Date.now() - new Date(poll.createdAt).getTime()) / 1000;
+        const remaining = Math.max(0, poll.timeLimit - elapsed);
         
         if (remaining > 0 && poll.status === 'active') {
           this.startTimer(remaining);
+        } else if (poll.status === 'active') {
+          // Poll should be closed as time is up
+          store.dispatch(setTimeRemaining(0));
+          this.socket?.emit('poll:timeUp');
         }
       }
     });
@@ -94,7 +113,18 @@ export class SocketService {
 
     this.socket.on('poll:error', (error) => {
       console.error('Poll error:', error);
-      store.dispatch(setError(error));
+      // FIX: Handle both string and object errors
+      const errorMessage = typeof error === 'string' ? error : error.message || 'An error occurred';
+      store.dispatch(setError(errorMessage));
+    });
+
+    this.socket.on('student:kicked', () => {
+      console.log('You have been kicked by the teacher');
+      // Clear session storage
+      sessionStorage.removeItem('studentId');
+      sessionStorage.removeItem('studentName');
+      // Redirect to kicked page
+      window.location.href = '/kicked';
     });
 
     return this.socket;
@@ -137,39 +167,70 @@ export class SocketService {
       }
       this.socket.emit('teacher:join', {}, (response: any) => {
         console.log('Teacher join response:', response);
+        // FIX: Handle error responses
+        if (response?.error) {
+          store.dispatch(setError(response.error));
+        }
       });
     } else {
       console.error('Socket not initialized');
+      // FIX: Add error to store
+      store.dispatch(setError('Connection not established. Please refresh the page.'));
     }
   }
 
   joinAsStudent(studentId: string, studentName: string) {
     if (!this.socket) {
       console.error('Socket not initialized');
+      store.dispatch(setError('Connection not established. Please refresh the page.'));
       return;
     }
     console.log('Joining as student:', { studentId, studentName });
     this.socket.emit('student:join', { studentId, studentName }, (response: { success?: boolean; error?: string }) => {
       if (response?.error) {
         console.error('Student join error:', response.error);
+        store.dispatch(setError(response.error));
         return;
       }
       console.log('Successfully joined as student');
+      // FIX: Request current poll state after joining
+      if (this.socket) {
+        this.socket.emit('poll:getCurrent');
+      }
     });
   }
 
   createPoll(poll: { question: string; options: string[]; timeLimit: number }) {
     if (!this.socket) {
       console.error('Socket not initialized');
+      store.dispatch(setError('Connection not established. Please refresh the page.'));
+      return;
+    }
+    // FIX: Check if connected before creating poll
+    if (!this.socket.connected) {
+      console.error('Socket not connected');
+      store.dispatch(setError('Not connected to server. Please check your connection.'));
       return;
     }
     console.log('Creating poll:', poll);
-    this.socket.emit('poll:create', poll);
+    this.socket.emit('poll:create', poll, (response?: any) => {
+      // FIX: Handle callback response
+      if (response?.error) {
+        store.dispatch(setError(response.error));
+      }
+    });
   }
 
   submitAnswer(answer: string) {
     if (!this.socket) {
       console.error('Socket not initialized');
+      store.dispatch(setError('Connection not established. Please refresh the page.'));
+      return;
+    }
+    // FIX: Check connection before submitting
+    if (!this.socket.connected) {
+      console.error('Socket not connected');
+      store.dispatch(setError('Not connected to server. Please check your connection.'));
       return;
     }
     console.log('Submitting answer:', answer);
@@ -221,7 +282,12 @@ export class SocketService {
 
   kickStudent(studentId: string) {
     if (this.socket) {
-      this.socket.emit('teacher:kick', { studentId });
+      // FIX: Add callback to handle response
+      this.socket.emit('teacher:kick', { studentId }, (response?: any) => {
+        if (response?.error) {
+          store.dispatch(setError(response.error));
+        }
+      });
     }
   }
 
@@ -231,6 +297,7 @@ export class SocketService {
       this.socket = null;
     }
     this.clearTimer();
+    this.isConnectedState = false; // FIX: Update connection state
   }
 
   onPollClosed(callback: (results: {
@@ -270,7 +337,8 @@ export class SocketService {
   }
 
   isConnected(): boolean {
-    return this.isConnectedState;
+    // FIX: Use actual socket connection state as fallback
+    return this.isConnectedState && this.socket?.connected || false;
   }
 
   onStudentListUpdate(callback: (list: string[]) => void): void {

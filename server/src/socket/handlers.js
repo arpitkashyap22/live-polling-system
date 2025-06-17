@@ -81,8 +81,8 @@ export function initializeSocketHandlers(io) {
       }
 
       // Store student info
-      students.set(socket.id, {
-        id: studentId,
+      students.set(studentId, {
+        socketId: socket.id,
         name: studentName,
         hasAnswered: false
       });
@@ -161,10 +161,10 @@ export function initializeSocketHandlers(io) {
       let kickedStudentSocketId = null;
       let kickedStudentName = null;
 
-      // Find the student by their unique ID (UUID) in the students Map
+      // Find the student by their unique ID (studentId) in the students Map
       for (const [sId, studentData] of students.entries()) {
-        if (studentData.id === studentId) {
-          kickedStudentSocketId = sId;
+        if (sId === studentId) {
+          kickedStudentSocketId = studentData.socketId;
           kickedStudentName = studentData.name;
           break;
         }
@@ -175,9 +175,9 @@ export function initializeSocketHandlers(io) {
         io.to(kickedStudentSocketId).emit('student:kicked');
         
         // Remove student from the list
-        students.delete(kickedStudentSocketId);
+        students.delete(studentId);
         // Remove their answer if they had submitted one
-        answers.delete(kickedStudentSocketId);
+        answers.delete(studentId);
         
         console.log(`Student ${kickedStudentName} (ID: ${studentId}) was kicked by teacher`);
 
@@ -206,33 +206,35 @@ export function initializeSocketHandlers(io) {
         return;
       }
 
-      const student = students.get(socket.id);
-      if (!student) {
-        console.log('Student not found:', socket.id);
-        if (callback) {
-          callback({ error: 'Student not found' });
-        }
-        return;
-      }
-
-      if (answers.has(socket.id)) {
-        console.log('Student already answered:', socket.id);
-        if (callback) {
-          callback({ error: 'You have already answered this poll' });
-        }
-        return;
-      }
+      let studentData = null;
+  let studentId = null;
+  
+  // Find student by socket.id
+  for (const [id, student] of students.entries()) {
+    if (student.socketId === socket.id) {
+      studentData = student;
+      studentId = id;
+      break;
+    }
+  }
+  
+  if (!studentData) {
+    callback({ error: 'Student not found' });
+    return;
+  }
+  
 
       // Store the answer
-      answers.set(socket.id, {
-        studentId: socket.id,
-        studentName: student.name,
-        answer: data.answer,
-        isCorrect: data.answer === currentPoll.correctAnswer,
-        timestamp: new Date().toISOString()
-      });
+      // Use studentId as key for answers
+  answers.set(studentId, {
+    studentId: studentId,
+    studentName: studentData.name,
+    answer: data.answer,
+    isCorrect: data.answer === currentPoll.correctAnswer,
+    timestamp: new Date().toISOString()
+  });
 
-      console.log('Answer recorded for student:', student.name);
+      console.log('Answer recorded for student:', studentData.name);
       if (callback) {
         callback({ 
           success: true,
@@ -244,7 +246,7 @@ export function initializeSocketHandlers(io) {
       io.to('teachers').emit('poll:answer:new', {
         pollId: currentPoll.id,
         studentId: socket.id,
-        studentName: student.name,
+        studentName: studentData.name,
         answer: data.answer,
         isCorrect: data.answer === currentPoll.correctAnswer
       });
@@ -256,15 +258,20 @@ export function initializeSocketHandlers(io) {
 
     // Handle disconnect
     socket.on('disconnect', () => {
-      // Remove student if they disconnect
+      // Find and remove student by socket.id
       for (const [studentId, student] of students.entries()) {
         if (student.socketId === socket.id) {
           students.delete(studentId);
           console.log(`Student ${student.name} disconnected`);
+          
+          // Notify teachers
+          io.to('teachers').emit('student:left', {
+            id: studentId,
+            name: student.name
+          });
           break;
         }
       }
-      console.log('User disconnected:', socket.id);
     });
   });
 }
