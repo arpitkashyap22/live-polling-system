@@ -13,7 +13,7 @@ export class SocketService {
   }
 
   connect() {
-    const SOCKET_URL = 'http://localhost:3001';
+    const SOCKET_URL = 'https://live-polling-system-tqff.onrender.com';
     console.log('Connecting to socket server at:', SOCKET_URL);
     
     this.socket = io(SOCKET_URL, {
