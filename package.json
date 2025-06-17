@@ -6,8 +6,8 @@
   "description": "A real-time live polling system with teacher and student personas",
 
   "scripts": {
-    "dev-client": "concurrently \"npm run server\" \"npm run client\"",
-    "dev": "npm run client",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev-client": "npm run client",
     "client": "vite",
     "server": "nodemon server/src/index.js",
     "build": "vite build",
