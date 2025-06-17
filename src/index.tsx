@@ -5,9 +5,9 @@ import { store } from './store';
 import App from "./App";
 
 createRoot(document.getElementById("app") as HTMLElement).render(
-  <StrictMode>
+  // <StrictMode>
     <Provider store={store}>
       <App />
     </Provider>
-  </StrictMode>,
+  // </StrictMode>,
 );
