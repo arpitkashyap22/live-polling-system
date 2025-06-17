@@ -68,13 +68,13 @@ const HomePage: React.FC = () => {
         </div>
 
         {/* Role Selection Cards */}
-        <div className="flex flex-row gap-8 w-full max-w-[800px] justify-center mb-12">
+        <div className="flex flex-row gap-8 w-full max-w-[800px] justify-center mb-12 ">
           {roleOptions.map((roleOption) => (
             <Card
               key={roleOption.id}
               className={`w-[387px] cursor-pointer transition-all hover:shadow-md ${
                 selectedRole === roleOption.id
-                  ? "border-0 shadow-sm"
+                  ? "border-2 border-[#7451B6] shadow-sm"
                   : "border border-solid border-[#d9d9d9]"
               }`}
               onClick={() => setSelectedRole(roleOption.id as "student" | "teacher")}

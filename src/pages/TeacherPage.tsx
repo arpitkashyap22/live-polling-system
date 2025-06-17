@@ -5,7 +5,7 @@ import { RootState } from '../store';
 import { socketService } from '../services/socket';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import  PollResults  from '../components/PollResults';
+import PollResults from '../components/PollResults';
 import { Plus, Users, Clock, ArrowLeft, X } from 'lucide-react';
 
 interface Poll {
@@ -48,7 +48,7 @@ const TeacherPage: React.FC = () => {
 
   useEffect(() => {
     console.log('Teacher page mounted, initializing connection...');
-    
+
     if (!socketService.isConnected()) {
       console.log('Socket not connected, connecting...');
       socketService.connect();
@@ -121,7 +121,7 @@ const TeacherPage: React.FC = () => {
 
     console.log('Creating new poll:', poll);
     await socketService.createPoll(poll);
-    
+
     // Reset form
     setQuestion('');
     setOptions(['', '']);
@@ -165,7 +165,7 @@ const TeacherPage: React.FC = () => {
                 <ArrowLeft className="w-4 h-4" />
                 Back to Home
               </Button>
-              
+
               <div className="flex w-[134px] h-[31px] items-center justify-center gap-[7px] px-[9px] py-0 rounded-3xl [background:linear-gradient(90deg,rgba(117,101,217,1)_0%,rgba(77,10,205,1)_100%)] mb-4">
                 <img
                   className="relative w-[14.66px] h-[14.65px]"
@@ -180,7 +180,7 @@ const TeacherPage: React.FC = () => {
                 Let's get started!
               </h1>
               <p className="[font-family:'Sora',Helvetica] text-gray-600 mt-1">
-              you'll have the ability to create and manage polls, ask questions, and monitor your students' responses in real-time.
+                you'll have the ability to create and manage polls, ask questions, and monitor your students' responses in real-time.
               </p>
             </div>
             {canCreateNewPoll && (
@@ -212,11 +212,10 @@ const TeacherPage: React.FC = () => {
                   </h3>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    currentPollState.status === 'active' 
-                      ? 'bg-green-100 text-green-800' 
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${currentPollState.status === 'active'
+                      ? 'bg-green-100 text-green-800'
                       : 'bg-gray-100 text-gray-800'
-                  }`}>
+                    }`}>
                     {currentPollState.status === 'active' ? 'Active' : 'Closed'}
                   </span>
                   {pollResults && (
@@ -235,27 +234,29 @@ const TeacherPage: React.FC = () => {
         {showCreateForm && (
           <Card className="mb-6">
             <CardHeader>
-              <CardTitle className="[font-family:'Sora',Helvetica]">Create New Poll</CardTitle>
+              <CardTitle className="[font-family:'Sora',Helvetica]">Enter your Question</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreatePoll} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 [font-family:'Sora',Helvetica]">
+                  {/* <label className="block text-sm font-medium text-gray-700 mb-2 [font-family:'Sora',Helvetica]">
                     Question
-                  </label>
-                  <input
-                    type="text"
+                  </label> */}
+                  <textarea
                     value={question}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuestion(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuestion(e.target.value)}
                     placeholder="Enter your poll question"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 [font-family:'Sora',Helvetica]"
-                    maxLength={200}
+                    maxLength={100}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg 
+             focus:outline-none focus:ring-2 focus:ring-blue-500 
+             resize-none [font-family:'Sora',Helvetica]"
+                    rows={4}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 [font-family:'Sora',Helvetica]">
-                    Options
+                  <label className="block text-sm font-medium mb-2 [font-family:'Sora',Helvetica]">
+                    Edit Options
                   </label>
                   {options.map((option, index) => (
                     <div key={index} className="flex gap-2 mb-2">
@@ -289,15 +290,22 @@ const TeacherPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
-                  
+
                   {options.length < 6 && (
                     <Button
                       type="button"
                       variant="outline"
                       onClick={handleAddOption}
-                      className="mt-2 [font-family:'Sora',Helvetica]"
+                      className=" border border-[#7451B6]
+    text-[11px] px-2.5 py-1 
+    rounded-md font-medium text-center 
+    me-2 mb-2 mt-2 
+    [font-family:'Sora',Helvetica]
+    text-[#7451B6] hover:bg-[#7451B6]/10
+    focus:outline-none focus:ring-1 focus:ring-[#7451B6]
+    "
                     >
-                      Add Option
+                      Add More Option
                     </Button>
                   )}
                 </div>
@@ -333,7 +341,7 @@ const TeacherPage: React.FC = () => {
         {/* Poll Results */}
         {pollResults && <PollResults results={pollResults} isTeacher={true} />}
 
-       
+
       </div>
 
       {/* Floating Student List Button */}
